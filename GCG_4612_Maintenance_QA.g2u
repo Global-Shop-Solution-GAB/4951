@@ -1,0 +1,140 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("QA Maintenance")
+Gui.Form..Size(5925,8625)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form.GsGrid.Create(GsGridControl)
+Gui.Form.GsGrid.Size(5745,7770)
+Gui.Form.GsGrid.Position(0,30)
+Gui.Form.cmdSave.Create(Button)
+Gui.Form.cmdSave.Size(1605,375)
+Gui.Form.cmdSave.Position(2070,7875)
+Gui.Form.cmdSave.Caption("Save / Close")
+Gui.Form.cmdSave.Event(Click,cmdSave_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare
+
+'7/6/2017 Dawn Hughes. This is a maintenance program to bring in QA codes from an excel. The user will choose the excel file to import.
+
+V.Local.sIcon.Declare(String)
+F.ODBC.Connection!con.OpenConnection(v.Ambient.PDSN,v.Ambient.PUser,v.Ambient.PPass)
+'icon stuff
+F.Intrinsic.String.Build("{0}\GAB\GAS\gss2.ico",V.Caller.PluginsDir,v.Local.sIcon)
+Gui.Form..Icon(V.Local.sIcon)
+F.Intrinsic.Control.CallSub(File)
+F.Intrinsic.Control.CallSub(Grid)
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Grid.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare
+
+'display QA
+Gui.Form.GsGrid.AddGridViewFromDataTable("GRID","QA")
+'make pretty
+Gui.Form.GsGrid.SetColumnProperty("GRID", "QA", "HeaderHAlignment", "Center")
+Gui.Form.GsGrid.SetColumnProperty("GRID", "Description", "HeaderHAlignment", "Center")
+Gui.Form.GsGrid.SetColumnProperty("GRID", "QA", "CellHAlignment", "Center")
+Gui.Form.GsGrid.SetColumnProperty("GRID", "Description", "CellHAlignment", "Center")
+Gui.Form.GsGrid.SetColumnProperty("GRID", "QA", "MinWidth", "25")
+Gui.Form.GsGrid.SetColumnProperty("GRID", "QA", "Width", "25")
+Gui.Form.GsGrid.SetColumnProperty("GRID", "Description", "MinWidth", "100")
+Gui.Form.GsGrid.SetColumnProperty("GRID", "QA", "AllowEdit ", "False")
+Gui.Form.GsGrid.SetColumnProperty("GRID", "QA", "ReadOnly", "True")
+Gui.Form.GsGrid.SetColumnProperty("GRID", "Description", "AllowEdit ", "False")
+Gui.Form.GsGrid.SetColumnProperty("GRID", "Description", "ReadOnly", "True")
+GUI.Form.GsGrid.mainview("GRID")
+GUI.Form..Show
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.Grid.End
+
+Program.Sub.File.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare
+
+v.Local..BulkDeclareString(sRet,  sText, sFields, sTypes)
+
+F.Intrinsic.UI.ShowOpenFileDialog("", "xlsx|*xlsx|xls|*xls", "", V.Local.sRet)
+' if cancelled, end script, otherwise continue....
+F.Intrinsic.Control.If(V.local.sRet,=,"***CANCEL***")
+	F.Intrinsic.UI.Msgbox("Choose a File")
+	Function.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Else
+	'read in the excel file
+	F.Automation.MSExcel.ReadSpreadsheet(V.local.sRet, V.Local.sText)
+	F.Intrinsic.String.Replace(V.Local.sText, "*!**!**!**!**!**!**!**!**!**!*", "", V.Local.sText)
+	' create datatable from string
+	V.Local.sFields.Set("QA*!*Description")
+	V.Local.sTypes.Set("String*!*String")
+	Function.Data.DataTable.CreateFromString("QA1", V.Local.sText, V.Local.sFields, V.Local.sTypes, "*!*", "$!$", TRUE)	
+	F.Data.DataTable.DeleteRow("QA1", 0)
+	'delete empty rows
+	F.Data.Dataview.Create("QA1", "QA_V", 22, "QA <> ''", "")	
+	Function.Data.DataView.ToDataTable("QA1", "QA_V", "QA", TRUE)
+Function.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.File.End
+
+Program.Sub.cmdSave_Click.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare
+
+'delete all
+F.ODBC.Connection!con.Execute("Delete From GCG_4612_Maint_QA")
+'save all
+Function.Data.DataTable.SaveToDB("QA", "con", "GCG_4612_Maint_QA","", 128)
+'call unload
+F.Intrinsic.Control.CallSub(Form_Unload)
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.Form_UnLoad.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare
+
+'close all
+GUI.Form..Visible(False)
+F.ODBC.Connection!con.Close 
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$$}$12:00:00 AM$}$False
+Program.Sub.Comments.End
