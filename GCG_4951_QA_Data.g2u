@@ -1,0 +1,310 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Caption("QA Data Collection")
+Gui.Form..Size(20700,11490)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form.Grid.Create(GsGridControl)
+Gui.Form.Grid.Size(20415,8100)
+Gui.Form.Grid.Position(-15,2640)
+Gui.Form.lbl1.Create(Label,"Quality Number",True,1710,255,0,60,135,True,0,"Arial",8,-2147483633,0)
+Gui.Form.txtQTY_NO.Create(TextBox,"",True,1650,300,0,75,330,True,2,"Arial",8,-2147483643,1)
+Gui.Form.txtQTY_NO.Locked(True)
+Gui.Form.ddlCode.Create(DropDownList)
+Gui.Form.ddlCode.Size(4890,330)
+Gui.Form.ddlCode.Position(30,1605)
+Gui.Form.lbl2.Create(Label,"Code",True,795,255,0,105,1350,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lbl3.Create(Label,"Count",True,705,255,0,45,735,True,0,"Arial",8,-2147483633,0)
+Gui.Form.txtCount.Create(TextBox,"",True,1215,300,0,60,930,True,1,"Arial",8,-2147483643,1)
+Gui.Form.txtCount.NumericOnly(2)
+Gui.Form.Others.Create(TextboxM)
+Gui.Form.Others.Size(8385,2145)
+Gui.Form.Others.Position(11415,375)
+Gui.Form.lbl4.Create(Label,"Others",True,630,255,0,11280,150,True,0,"Arial",8,-2147483633,0)
+Gui.Form.cmdADD.Create(Button)
+Gui.Form.cmdADD.Size(1065,375)
+Gui.Form.cmdADD.Position(105,2070)
+Gui.Form.cmdADD.Caption("ADD")
+Gui.Form.cmdADD.Event(Click,cmdADD_Click)
+Gui.Form.cmdSave.Create(Button)
+Gui.Form.cmdSave.Size(960,375)
+Gui.Form.cmdSave.Position(1800,2055)
+Gui.Form.cmdSave.Caption("Save")
+Gui.Form.cmdSave.Event(Click,cmdSave_Click)
+Gui.Form.RefDes.Create(TextboxM)
+Gui.Form.RefDes.Size(2895,2145)
+Gui.Form.RefDes.Position(8070,375)
+Gui.Form.lbl5.Create(Label,"Reference Designator",True,1740,255,0,8040,135,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lbl6.Create(Label,"Serial Number",True,1155,255,0,5475,135,True,0,"Arial",8,-2147483633,0)
+Gui.Form.Serial.Create(TextboxM)
+Gui.Form.Serial.Size(2280,2235)
+Gui.Form.Serial.Position(5460,315)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+V.Global.sQTY_NO.Declare(String)
+V.Global.iRet.Declare(Long, -1)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String)
+
+'DRH 4/25/2018 GCG_4951_QA_DATA
+
+'check calling hook
+'Quality System>View>Quality Reject/Disposition
+Function.Intrinsic.Control.If(V.Caller.Hook, =, 28901)
+	'then rename script 1 button
+	V.Passed.000168.Set("DATA")
+'QA>View>Quality Reject/Disposition Script 1 Button	
+F.Intrinsic.Control.Elseif(V.Caller.Hook, = , 28905)
+	V.Global.sQTY_NO.Set(V.Passed.000002)
+	F.Intrinsic.Control.CallSub(Create_Data)
+	
+'GUI>Scrap Codes> Script 1 button label
+Function.Intrinsic.Control.ElseIf(V.Caller.Hook, =, 28400)
+	'then rename script 1 button
+	V.Passed.000038.Set("DATA")
+'GUI>Scrap Codes> Script 1 button
+Function.Intrinsic.Control.ElseIf(V.Caller.Hook, =, 28401)
+	F.Intrinsic.Control.CallSub(Get_QTY_NO)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.CallSub(UnLoad)
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.CallSub(Form_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Form_UnLoad.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String)
+
+GUI.Form..Visible(False)
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.End 
+F.Intrinsic.Control.EndTry
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.Get_QTY_NO.Start
+F.Intrinsic.Control.Try
+
+V.Local..BulkDeclareString(sIcon, sError, sRet)
+
+F.Intrinsic.Control.If(V.Caller.Hook, = , 28905)
+	V.Global.sQTY_NO.Set(V.Passed.000002)
+F.Intrinsic.Control.Elseif(V.Caller.Hook, = , 28401)
+	'read quality number
+	F.Intrinsic.BDF.Load("AUX001","AUX001") 
+	Function.Intrinsic.BDF.TextMatrix("AUX001", 3,0, V.Global.sQTY_NO) 
+	'check quality number was created
+	F.Intrinsic.Control.If(V.Global.sQTY_NO, =, "")
+		F.Intrinsic.UI.Msgbox("Create Quality Number First")
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+GUI.Form.txtQTY_NO.TEXT(V.Global.sQTY_NO)
+F.Intrinsic.Control.CallSub(Create_Data)
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.CallSub(Form_UnLoad) 
+F.Intrinsic.Control.EndTry
+Program.Sub.Get_QTY_NO.End
+
+Program.Sub.Create_Data.Start
+F.Intrinsic.Control.Try
+
+V.Local..BulkDeclareString(sIcon, sError, ssql, sRet, sValues, sQA_CODES)
+F.Intrinsic.String.Build("{0}\GAB\GAS\gss2.ico",V.Caller.PluginsDir,V.Local.sIcon)
+Gui.Form..Icon(V.Local.sIcon)
+
+F.Intrinsic.String.Build("Select QUALITY_NO,AMOUNT, RECORD_NO, rtrim(QA_CODE) As QA_CODE,rTRim(Serial) As Serial,rTRim(RefDes) As RefDes, rTRim(Others) As Others, rTrim(DISCREP_Code) As DISCREP_Code, rTrim(DISPOSAL_ACTION) As DISPOSAL_ACTION   From GCG_4951_QA_DATA Where QUALITY_NO = '{0}' Order By RECORD_NO", V.Global.sQTY_NO, V.Local.ssql)
+F.ODBC.Connection!con.OpenConnection(V.Ambient.PDSN, V.Ambient.PUser, V.Ambient.PPass)
+
+F.Data.DataTable.CreateFromSQL("QA", "con", V.Local.ssql, True)
+F.Data.DataTable.CreateFromSQL(   "DDL",  "con" , "Select rTrim(QA) +':  '+ rTrim(DESCRIPTION) as QA_CODE From GCG_4612_Maint_QA Order By QA", TRUE )
+GUI.Form.ddlCode.AddItems("DataTable", "DDL", "QA_CODE", "QA_CODE")
+
+GUI.Form.Grid.AddGridviewFromDatatable("GRID", "QA")
+
+'column edits 
+F.Data.DataTable.CreateFromSQL("DISCREP", "con"," Select rTrim(DISCREP_CODE) +':  '+ rTrim(DISCREP_DESC) as DISCREP_Code from  QUALITY_DISCRP_CD  Where SYS = 'QUA' And SUB_SYS = 'DIS'", True)
+F.ODBC.Connection!con.Close
+
+'to string
+F.Data.DataView.Create("DDL", "DDL_V")
+Function.Data.DataView.ToString("DDL", "DDL_V","QA_CODE" ,"@!@", "*!*", V.Local.sQA_CODES)
+Gui.Form.Grid.ColumnEdit("GRID", "QA_CODE", "Dropdownlist", V.Local.sQA_CODES)
+
+F.Data.DataView.Create("DISCREP", "DISCREP_V")
+Function.Data.DataView.ToString("DISCREP", "DISCREP_V","DISCREP_Code" ,"@!@", "*!*", V.Local.sRet)
+Gui.Form.Grid.ColumnEdit("GRID", "DISCREP_Code", "Dropdownlist", V.Local.sRet)
+Gui.Form.Grid.ColumnEdit("GRID", "DISPOSAL_ACTION", "Dropdownlist", "*!*Accept As Is, Reviewed*!*Unrejected, Rejected In Error*!*Scrap*!*Rework On New WO*!*Remake On New WO*!*Repair On New WO*!*Regrade On New WO*!*Rework on Same WO, Rework Seq*!*Re-Identify")
+
+GUI.Form.Grid.SetGridViewProperty("GRID", "OptionsViewRowAutoHeight", True)
+GUI.Form.Grid.SetColumnProperty("GRID","RECORD_NO","CellWordWrap","Wrap")
+GUI.Form.Grid.SetColumnProperty("GRID","AMOUNT","CellWordWrap","Wrap")
+GUI.Form.Grid.SetColumnProperty("GRID","Others","CellWordWrap","Wrap")
+GUI.Form.Grid.SetColumnProperty("GRID","Serial","CellWordWrap","Wrap")
+GUI.Form.Grid.SetColumnProperty("GRID","RefDes","CellWordWrap","Wrap")
+
+GUI.Form.Grid.SetColumnProperty("Grid", "QUALITY_NO","Visible",False)
+
+GUI.Form.Grid.SetColumnProperty("Grid", "RECORD_NO","MinWidth","50")
+GUI.Form.Grid.SetColumnProperty("Grid", "AMOUNT","MinWidth","50")
+GUI.Form.Grid.SetColumnProperty("Grid", "QA_CODE","MinWidth","200")
+GUI.Form.Grid.SetColumnProperty("Grid", "Serial","MinWidth","200")
+GUI.Form.Grid.SetColumnProperty("Grid", "RefDes","MinWidth","200")
+GUI.Form.Grid.SetColumnProperty("Grid", "Others","MinWidth","600")
+GUI.Form.Grid.SetColumnProperty("Grid", "DISCREP_Code","MinWidth","200")
+GUI.Form.Grid.SetColumnProperty("Grid", "DISPOSAL_ACTION","MinWidth","200")
+
+
+GUI.Form.Grid.SetColumnProperty("Grid", "RECORD_NO","Caption","Record NO")
+GUI.Form.Grid.SetColumnProperty("Grid", "AMOUNT","Caption","Count")
+GUI.Form.Grid.SetColumnProperty("Grid", "QA_CODE","Caption","QA Code")
+GUI.Form.Grid.SetColumnProperty("Grid", "Others","Caption","Others")
+GUI.Form.Grid.SetColumnProperty("Grid", "RefDes","Caption","Reference Designator")
+GUI.Form.Grid.SetColumnProperty("Grid", "DISCREP_Code","Caption","Discrepancy")
+GUI.Form.Grid.SetColumnProperty("Grid", "DISPOSAL_ACTION","Caption","Disposal Action")
+
+GUI.Form.Grid.SetColumnProperty("Grid", "RECORD_NO","AllowEdit",False)
+GUI.Form.Grid.SetColumnProperty("Grid", "AMOUNT","AllowEdit",True)
+GUI.Form.Grid.SetColumnProperty("Grid", "Others","AllowEdit",True)
+GUI.Form.Grid.SetColumnProperty("Grid", "RefDes","AllowEdit",True)
+GUI.Form.Grid.SetColumnProperty("Grid", "Serial","AllowEdit",True)
+
+
+GUI.Form.Grid.SetColumnProperty("Grid", "RECORD_NO","ReadOnly",True)
+GUI.Form.Grid.SetColumnProperty("Grid", "AMOUNT","ReadOnly",False)
+GUI.Form.Grid.SetColumnProperty("Grid", "Others","ReadOnly",False)
+GUI.Form.Grid.SetColumnProperty("Grid", "RefDes","ReadOnly",False)
+GUI.Form.Grid.SetColumnProperty("Grid", "Serial","ReadOnly",False)
+
+
+F.Intrinsic.Control.If(V.Caller.Hook, =,28401)
+	GUI.Form.Grid.SetColumnProperty("Grid", "DISCREP_Code","ReadOnly",True)
+	GUI.Form.Grid.SetColumnProperty("Grid", "DISPOSAL_ACTION","ReadOnly",True)
+	GUI.Form.Grid.SetColumnProperty("Grid", "QA_CODE","ReadOnly",True)
+	GUI.Form.Grid.SetColumnProperty("Grid", "DISCREP_Code","AllowEdit",False)
+	GUI.Form.Grid.SetColumnProperty("Grid", "DISPOSAL_ACTION","AllowEdit",False)
+	GUI.Form.Grid.SetColumnProperty("Grid", "QA_CODE","AllowEdit",False)	
+F.Intrinsic.Control.Else
+	GUI.Form.Grid.SetColumnProperty("Grid", "DISCREP_Code","ReadOnly",False)
+	GUI.Form.Grid.SetColumnProperty("Grid", "DISPOSAL_ACTION","ReadOnly",False)
+	GUI.Form.Grid.SetColumnProperty("Grid", "QA_CODE","ReadOnly",False)
+	GUI.Form.Grid.SetColumnProperty("Grid", "DISCREP_Code","AllowEdit",True)
+	GUI.Form.Grid.SetColumnProperty("Grid", "DISPOSAL_ACTION","AllowEdit",True)
+	GUI.Form.Grid.SetColumnProperty("Grid", "QA_CODE","AllowEdit",True)	
+F.Intrinsic.Control.EndIf
+
+GUI.Form.txtQTY_NO.Text(V.Global.sQTY_NO)
+
+Gui.Form.Grid.SetGridviewProperty("Grid","AllowDeleteRows",True)
+
+Gui.Form.Grid.SetGridviewProperty("Grid","Enableappearanceevenrow",True)
+
+GUI.Form.Grid.Mainview("GRID")
+
+GUI.Form.Grid.Anchor(15)
+gui.Form.Others.Anchor(9)
+GUI.Form.lbl1.Anchor(5)
+GUI.Form.lbl2.Anchor(5)
+GUI.Form.lbl3.Anchor(5)
+GUI.Form.lbl4.Anchor(9)
+GUI.Form.cmdADD.Anchor(5)
+GUI.Form.cmdSave.Anchor(5)
+GUI.Form.ddlCode.Anchor(5)
+Gui.Form.txtCount.Anchor(5)
+gui.Form.Others.Anchor(9)
+GUI.Form.txtQTY_NO.Anchor(5)
+
+GUI.Form..Show
+		
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.CallSub(Form_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.Create_Data.End
+
+Program.Sub.cmdADD_Click.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String)
+
+V.Local..BulkDeclareString(ssql, sRet)
+
+F.Intrinsic.Control.If(V.Global.iRet, =, -1)
+	F.Intrinsic.Control.CallSub(Record_NO)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Math.Add(V.Global.iRet, 1, V.Global.iRet)
+F.Intrinsic.String.LPad(V.Global.iRet, "0", 4, V.Local.sRet)
+'save to grid
+F.Data.DataTable.AddRow("QA", "AMOUNT",V.Screen.Form!txtCount.Text ,"QUALITY_NO", V.Global.sQTY_NO,"RECORD_NO", V.Local.sRet,"QA_CODE", V.Screen.Form!ddlCode.Text,"Others",V.Screen.Form!Others.Text, "Serial", V.Screen.Form!Others.Text, "RefDes", V.Screen.Form!RefDes.Text)
+'reset notes and ddl
+gui.Form.Others.Text("")
+gui.Form.Serial.Text("")
+gui.Form.RefDes.Text("")
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.CallSub(Form_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdADD_Click.End
+
+Program.Sub.cmdSave_Click.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String)
+
+V.Local.sRet.Declare(String)
+'save
+F.ODBC.Connection!con.OpenConnection(V.Ambient.PDSN, V.Ambient.PUser, V.Ambient.PPass)
+F.Data.DataTable.SaveToDB("QA", "con", "GCG_4951_QA_DATA", "QUALITY_NO*!*RECORD_NO", 7)
+F.ODBC.Connection!con.Close
+
+Function.Intrinsic.UI.MsgBox ("Data Saved. Exit Screen?", "Exit",4, V.Local.sRet)
+F.Intrinsic.Control.If(V.Local.sRet, =, 6)
+	F.Intrinsic.Control.CallSub(Form_Unload)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.CallSub(Form_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.Record_NO.Start
+F.Intrinsic.Control.Try
+V.Local.sError.Declare(String)
+V.Local.ssql.Declare(String)
+
+'create the record no
+F.Intrinsic.String.Build("Select Top 1 RECORD_NO From GCG_4951_QA_DATA Where QUALITY_NO = '{0}' Order By RECORD_NO desc", V.Global.sQTY_NO, V.Local.ssql)
+F.ODBC.Connection!con.OpenConnection(V.Ambient.PDSN, V.Ambient.PUser, V.Ambient.PPass)
+F.ODBC.Connection!con.ExecuteAndReturn(V.Local.ssql, V.Global.iRet)
+F.ODBC.Connection!con.Close
+
+F.Intrinsic.Control.Catch
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Ambient.ScriptPath,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.CallSub(Form_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.Record_NO.End
